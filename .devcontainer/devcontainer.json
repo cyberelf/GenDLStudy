@@ -1,0 +1,20 @@
+{
+    "name": "Poetry Development Environment",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11",
+    "features": {
+      "ghcr.io/devcontainers/features/poetry:1": {
+        "version": "latest"
+      }
+    },
+    "customizations": {
+      "vscode": {
+        "settings": {},
+        "extensions": [
+          "ms-python.python",
+          "ms-python.vscode-pylance"
+        ]
+      }
+    },
+    "postCreateCommand": "git submodule update --init --recursive && cd Generative_Deep_Learning_2nd_Edition && pip install -r requirements.txt && cd ../scripts && poetry install",
+    "remoteUser": "vscode"
+  }
