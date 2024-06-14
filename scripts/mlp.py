@@ -55,3 +55,5 @@ for i, idx in enumerate(indices):
     ax.imshow(img)
 
 plt.show()
+
+plt.savefig('mlp.png')

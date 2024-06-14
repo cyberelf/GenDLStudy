@@ -1,11 +1,6 @@
 {
-    "name": "Poetry Development Environment",
+    "name": "GenDLStudy",
     "image": "mcr.microsoft.com/devcontainers/python:3.11",
-    "features": {
-      "ghcr.io/devcontainers/features/poetry:1": {
-        "version": "latest"
-      }
-    },
     "customizations": {
       "vscode": {
         "settings": {},
@@ -15,6 +10,6 @@
         ]
       }
     },
-    "postCreateCommand": "git submodule update --init --recursive && cd Generative_Deep_Learning_2nd_Edition && pip install -r requirements.txt && cd ../scripts && poetry install",
+    "postCreateCommand": "pip install poetry && cd scripts && poetry install",
     "remoteUser": "vscode"
-  }
+}
