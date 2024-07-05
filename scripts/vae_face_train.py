@@ -104,20 +104,20 @@ class ImageGenerator(callbacks.Callback):
 
 
 if __name__ == "__main__":
-    img_no = get_ipython().getoutput(f'ls {DATAF} | wc -l')
-    print(f'There are {img_no[0]} image fiies in folder /content/img_align_celeb.')
+    # img_no = get_ipython().getoutput(f'ls {DATAF} | wc -l')
+    # print(f'There are {img_no[0]} image fiies in folder /content/img_align_celeb.')
 
-    train_data = utils.image_dataset_from_directory(
-        DATAF,
-        labels=None,
-        color_mode='rgb',
-        image_size=(IMAGE_SIZE, IMAGE_SIZE),
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        seed=42,
-        interpolation='bilinear',)
+    # train_data = utils.image_dataset_from_directory(
+    #     DATAF,
+    #     labels=None,
+    #     color_mode='rgb',
+    #     image_size=(IMAGE_SIZE, IMAGE_SIZE),
+    #     batch_size=BATCH_SIZE,
+    #     shuffle=True,
+    #     seed=42,
+    #     interpolation='bilinear',)
 
-    train = train_data.map(lambda x: preprocess_img(x))
+    # train = train_data.map(lambda x: preprocess_img(x))
 
 
     encoder_input = layers.Input(shape=(IMAGE_SIZE, IMAGE_SIZE, CHANNELS), name="encoder_input")
