@@ -1,3 +1,4 @@
 [submodule "code_of_the_book"]
 	path = Generative_Deep_Learning_2nd_Edition
 	url = git@github.com:cyberelf/Generative_Deep_Learning_2nd_Edition.git
+	branch = main
