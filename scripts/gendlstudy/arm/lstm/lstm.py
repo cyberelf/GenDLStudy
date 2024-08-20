@@ -6,6 +6,7 @@
 # In this notebook, we'll walk through the steps required to train your own LSTM on the recipes dataset
 
 
+from matplotlib.pyplot import step
 import numpy as np
 import json
 import re
@@ -18,6 +19,7 @@ from tensorflow.keras import layers, models, callbacks, losses
 
 import os
 from gendlstudy.utils import sample_batch, display
+from gendlstudy.arm.lstm.manual_lstm import LSTMModel
 
 data_dir = "/gemini/code/GenDLStudy/data/epirecipes"
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -146,9 +148,12 @@ class TextGenerator(callbacks.Callback):
             self.word_to_index.get(x, 1) for x in start_prompt.split()
         ]  # <3>
         sample_token = None
+        
         info = []
         while len(start_tokens) < max_tokens and sample_token != 0:  # <4>
             x = np.array([start_tokens])
+            padding_length = MAX_LEN - len(start_tokens)
+            x = np.pad(x, ((0, 0), (0, padding_length)), mode='constant', constant_values=0)
             y = self.model.predict(x, verbose=0)  # <5>
             sample_token, probs = self.sample_from(y[0][-1], temperature)  # <6>
             info.append({"prompt": start_prompt, "word_probs": probs})
@@ -178,9 +183,10 @@ def train(continue_from=None):
     if continue_from:
         lstm = models.load_model(continue_from, compile=False)
     else:
-        inputs = layers.Input(shape=(None,), dtype="int32")
+        inputs = layers.Input(shape=(MAX_LEN,), dtype="int32")
         x = layers.Embedding(VOCAB_SIZE, EMBEDDING_DIM)(inputs)
-        x = layers.LSTM(N_UNITS, return_sequences=True)(x)
+        # x = layers.LSTM(N_UNITS, return_sequences=True)(x)
+        x = LSTMModel(N_UNITS)(x)
         outputs = layers.Dense(VOCAB_SIZE, activation="softmax")(x)
         lstm = models.Model(inputs, outputs)
         lstm.summary()
@@ -199,8 +205,8 @@ def train(continue_from=None):
 
     return lstm
 
-# lstm = train()
-lstm = models.load_model(f"{model_dir}/lstm", compile=False)
+lstm = train()
+# lstm = models.load_model(f"{model_dir}/lstm", compile=False)
 text_generator.model = lstm
 
 # ## 6. Generate text using the LSTM
