@@ -313,7 +313,7 @@ ebm.fit(
 # )
 start_imgs = tf.random.uniform(shape=(10, IMAGE_SIZE, IMAGE_SIZE, CHANNELS)) * 2 - 1
 
-display(start_imgs)
+display(start_imgs.numpy())
 
 
 gen_img = generate_samples(
