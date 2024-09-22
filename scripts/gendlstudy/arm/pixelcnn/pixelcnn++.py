@@ -100,7 +100,7 @@ class ImageGenerator(callbacks.Callback):
         display(
             generated_images,
             n=self.num_img,
-            save_to="./output/generated_img_%03d.png" % (epoch),
+            save_to=f"{output_dir}/generated_img_%03d.png" % (epoch),
         )
 
 
