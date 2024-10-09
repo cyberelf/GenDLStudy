@@ -16,6 +16,7 @@ from gendlstudy.utils import sample_batch, display
 import numpy as np
 
 import tensorflow as tf
+from keras.saving import register_keras_serializable
 from tensorflow.keras import (
     datasets,
     layers,
@@ -30,7 +31,8 @@ from tensorflow.keras import (
 
 
 # data_dir = "/gemini/data-2/oxford_102_flower_dataset/dataset/train"
-data_dir = "/gemini/data-1/img_align_celeba/img_align_celeba"
+# data_dir = "/gemini/data-1/img_align_celeba/img_align_celeba"
+data_dir = "/home/guangyu/workspace/dataset/pytorch-challange-flower-dataset/dataset/train"
 base_dir = os.path.dirname(os.path.abspath(__file__))
 checkpoint_dir = f"{base_dir}/checkpoint"
 output_dir = f"{base_dir}/output"
@@ -78,7 +80,7 @@ def preprocess(img):
 
 
 train = train_data.map(lambda x: preprocess(x))
-# train = train.repeat(DATASET_REPETITIONS)
+train = train.repeat(DATASET_REPETITIONS)
 train = train.batch(BATCH_SIZE, drop_remainder=True)
 
 
@@ -120,7 +122,7 @@ def offset_cosine_diffusion_schedule(diffusion_times):
     return noise_rates, signal_rates
 
 # ## 2. Build the model <a name="build"></a>
-
+@register_keras_serializable()
 def sinusoidal_embedding(x):
     frequencies = tf.exp(
         tf.linspace(
@@ -265,7 +267,7 @@ class DiffusionModel(models.Model):
                 next_diffusion_times
             )
             current_images = (
-                next_signal_rates * pred_images + next_noise_rates * pred_noises
+                next_signal_rates * pred_images + next_noise_rates * pred_noises    # you can add some random noise here to make the model DDPM instead of DDIM
             )
         return pred_images
 
@@ -342,16 +344,16 @@ if LOAD_MODEL:
 # ## 3.Train the model <a name="train"></a>
 
 ddm.compile(
-    optimizer=optimizers.experimental.AdamW(
+    optimizer=optimizers.AdamW(
         learning_rate=LEARNING_RATE, weight_decay=WEIGHT_DECAY
     ),
-    loss=losses.mean_absolute_error,
+    loss=losses.mse,
 )
 
 
 # run training and plot generated images periodically
 model_checkpoint_callback = callbacks.ModelCheckpoint(
-    filepath=f"{checkpoint_dir}/checkpoint.ckpt",
+    filepath=f"{checkpoint_dir}/checkpoint.weights.h5",
     save_weights_only=True,
     save_freq="epoch",
     verbose=0,

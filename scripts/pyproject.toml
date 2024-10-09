@@ -10,10 +10,14 @@ packages = [
     { include = "gendlstudy" }
 ]
 
+[[tool.poetry.source]]
+name = "pypi_mirror"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+priority = "primary"
 
 [tool.poetry.dependencies]
 python = ">=3.10 <3.12"
-tensorflow = "^2.16.1"
+tensorflow[and-cuda] = "^2.16.1"
 tensorflow_probability = "0.23.0"
 keras = "^3.3.3"
 keras-cv = "0.9.0"
