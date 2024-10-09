@@ -29,13 +29,16 @@ from tensorflow.keras import (
 )
 
 
-data_dir = "/home/guangyu/workspace/dataset/pytorch-challange-flower-dataset/dataset"
+# data_dir = "/gemini/data-2/oxford_102_flower_dataset/dataset/train"
+data_dir = "/gemini/data-1/img_align_celeba/img_align_celeba"
 base_dir = os.path.dirname(os.path.abspath(__file__))
 checkpoint_dir = f"{base_dir}/checkpoint"
 output_dir = f"{base_dir}/output"
 log_dir = f"{base_dir}/logs"
 model_dir = f"{base_dir}/models"
 
+for directory in [checkpoint_dir, output_dir, log_dir, model_dir]:
+    os.makedirs(directory, exist_ok=True)
 
 # ## 0. Parameters <a name="parameters"></a>
 
@@ -58,7 +61,7 @@ EPOCHS = 50
 
 # Load the data
 train_data = utils.image_dataset_from_directory(
-    f"{data_dir}/train",
+    f"{data_dir}",
     labels=None,
     image_size=(IMAGE_SIZE, IMAGE_SIZE),
     batch_size=None,
@@ -75,7 +78,7 @@ def preprocess(img):
 
 
 train = train_data.map(lambda x: preprocess(x))
-train = train.repeat(DATASET_REPETITIONS)
+# train = train.repeat(DATASET_REPETITIONS)
 train = train.batch(BATCH_SIZE, drop_remainder=True)
 
 
@@ -348,7 +351,7 @@ ddm.compile(
 
 # run training and plot generated images periodically
 model_checkpoint_callback = callbacks.ModelCheckpoint(
-    filepath=f"{checkpoint_dir}/checkpoint/checkpoint.ckpt",
+    filepath=f"{checkpoint_dir}/checkpoint.ckpt",
     save_weights_only=True,
     save_freq="epoch",
     verbose=0,
