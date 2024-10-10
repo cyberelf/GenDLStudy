@@ -276,7 +276,7 @@ gpt.summary()
 
 if LOAD_MODEL:
     # model.load_weights('./models/model')
-    gpt = models.load_model("./models/gpt", compile=True)
+    gpt = models.load_model(f"{model_dir}/gpt", compile=True)
 
 
 # ## 9. Train the Transformer <a name="train"></a>
@@ -322,13 +322,13 @@ class TextGenerator(callbacks.Callback):
 
 # Create a model save checkpoint
 model_checkpoint_callback = callbacks.ModelCheckpoint(
-    filepath="./checkpoint/checkpoint.ckpt",
+    filepath=f"{checkpoint_dir}/checkpoint.weights.h5",
     save_weights_only=True,
     save_freq="epoch",
     verbose=0,
 )
 
-tensorboard_callback = callbacks.TensorBoard(log_dir="./logs")
+tensorboard_callback = callbacks.TensorBoard(log_dir=log_dir)
 
 # Tokenize starting prompt
 text_generator = TextGenerator(vocab)
@@ -342,7 +342,7 @@ gpt.fit(
 
 
 # Save the final model
-gpt.save("./models/gpt")
+gpt.save(f"{model_dir}/gpt.keras")
 
 
 # # 3. Generate text using the Transformer
@@ -385,10 +385,4 @@ info = text_generator.generate(
     "wine review : germany", max_tokens=80, temperature=0.5
 )
 print_probs(info, vocab)
-
-
-
-
-
-
 
