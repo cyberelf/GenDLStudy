@@ -32,7 +32,7 @@ from tensorflow.keras import (
 
 # data_dir = "/gemini/data-2/oxford_102_flower_dataset/dataset/train"
 # data_dir = "/gemini/data-1/img_align_celeba/img_align_celeba"
-data_dir = "/home/guangyu/workspace/dataset/pytorch-challange-flower-dataset/dataset/train"
+data_dir = "/home/guangyu/workspace/dataset/pytorch-challange-flower-dataset/dataset"
 base_dir = os.path.dirname(os.path.abspath(__file__))
 checkpoint_dir = f"{base_dir}/checkpoint"
 output_dir = f"{base_dir}/output"
@@ -108,7 +108,7 @@ def cosine_diffusion_schedule(diffusion_times):
     return noise_rates, signal_rates
 
 
-def offset_cosine_diffusion_schedule(diffusion_times):
+def offset_cosine_diffusion_schedule(diffusion_times, sigma=0.0):
     min_signal_rate = 0.02
     max_signal_rate = 0.95
     start_angle = tf.acos(max_signal_rate)
@@ -117,7 +117,7 @@ def offset_cosine_diffusion_schedule(diffusion_times):
     diffusion_angles = start_angle + diffusion_times * (end_angle - start_angle)
 
     signal_rates = tf.cos(diffusion_angles)
-    noise_rates = tf.sin(diffusion_angles)
+    noise_rates = (tf.sin(diffusion_angles)**2-sigma**2)**0.5
 
     return noise_rates, signal_rates
 
@@ -136,12 +136,6 @@ def sinusoidal_embedding(x):
         [tf.sin(angular_speeds * x), tf.cos(angular_speeds * x)], axis=3
     )
     return embeddings
-
-
-embedding_list = []
-for y in np.arange(0, 1, 0.01):
-    embedding_list.append(sinusoidal_embedding(np.array([[[[y]]]]))[0][0][0])
-embedding_array = np.array(np.transpose(embedding_list))
 
 
 def ResidualBlock(width):
@@ -226,6 +220,9 @@ class DiffusionModel(models.Model):
         self.normalizer = layers.Normalization()
         self.network = unet
         self.ema_network = models.clone_model(self.network)
+        # using these two schedules will fail the training probably because the noise is too small
+        # self.diffusion_schedule = cosine_diffusion_schedule
+        # self.diffusion_schedule = linear_diffusion_schedule
         self.diffusion_schedule = offset_cosine_diffusion_schedule
 
     def compile(self, **kwargs):
@@ -263,11 +260,18 @@ class DiffusionModel(models.Model):
                 current_images, noise_rates, signal_rates, training=False
             )
             next_diffusion_times = diffusion_times - step_size
+            sigma = 0.01
             next_noise_rates, next_signal_rates = self.diffusion_schedule(
-                next_diffusion_times
+                next_diffusion_times,
+                sigma=sigma,
             )
+            # DDIM
+            # current_images = (
+            #     next_signal_rates * pred_images + next_noise_rates * pred_noises    # you can add some random noise here to make the model DDPM instead of DDIM
+            # )
+            # DDPM
             current_images = (
-                next_signal_rates * pred_images + next_noise_rates * pred_noises    # you can add some random noise here to make the model DDPM instead of DDIM
+                next_signal_rates * pred_images + next_noise_rates * pred_noises + sigma * tf.random.normal(shape=(num_images, IMAGE_SIZE, IMAGE_SIZE, 3))
             )
         return pred_images
 
@@ -424,7 +428,7 @@ for i in range(5):
     generated_images = ddm.generate(
         num_images=2, diffusion_steps=20, initial_noise=initial_noise
     ).numpy()
-    display(generated_images, n=11)
+    display(generated_images, n=11, save_to=f"{output_dir}/new_img_{i}.png",)
 
 
 
