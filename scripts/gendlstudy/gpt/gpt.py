@@ -16,6 +16,7 @@ from IPython.display import display, HTML
 
 import tensorflow as tf
 from tensorflow.keras import layers, models, losses, callbacks
+from tensorflow import keras
 
 
 # ## 0. Parameters <a name="parameters"></a>
@@ -28,11 +29,12 @@ N_HEADS = 2
 FEED_FORWARD_DIM = 256
 VALIDATION_SPLIT = 0.2
 SEED = 42
-LOAD_MODEL = False
+LOAD_MODEL = True
 BATCH_SIZE = 32
 EPOCHS = 5
 
-data_dir = "/home/guangyu/workspace/dataset/wine-reviews"
+# data_dir = "/home/guangyu/workspace/dataset/wine-reviews"
+data_dir = "/gemini/data-2/wine-review"
 base_dir = os.path.dirname(os.path.abspath(__file__))
 checkpoint_dir = f"{base_dir}/checkpoint"
 output_dir = f"{base_dir}/output"
@@ -174,9 +176,9 @@ np.transpose(causal_attention_mask(1, 10, 10, dtype=tf.int32)[0])
 
 
 # ## 6. Create a Transformer Block layer <a name="transformer"></a>
-
+@keras.saving.register_keras_serializable()
 class TransformerBlock(layers.Layer):
-    def __init__(self, num_heads, key_dim, embed_dim, ff_dim, dropout_rate=0.1):
+    def __init__(self, num_heads, key_dim, embed_dim, ff_dim, dropout_rate=0.1, **kwargs):
         super(TransformerBlock, self).__init__()
         self.num_heads = num_heads
         self.key_dim = key_dim
@@ -228,9 +230,9 @@ class TransformerBlock(layers.Layer):
 
 
 # ## 7. Create the Token and Position Embedding <a name="embedder"></a>
-
+@keras.saving.register_keras_serializable()
 class TokenAndPositionEmbedding(layers.Layer):
-    def __init__(self, max_len, vocab_size, embed_dim):
+    def __init__(self, max_len, vocab_size, embed_dim, **kwargs):
         super(TokenAndPositionEmbedding, self).__init__()
         self.max_len = max_len
         self.vocab_size = vocab_size
@@ -274,11 +276,6 @@ gpt.compile("adam", loss=[losses.SparseCategoricalCrossentropy(), None])
 gpt.summary()
 
 
-if LOAD_MODEL:
-    # model.load_weights('./models/model')
-    gpt = models.load_model(f"{model_dir}/gpt", compile=True)
-
-
 # ## 9. Train the Transformer <a name="train"></a>
 
 # Create a TextGenerator checkpoint
@@ -320,48 +317,51 @@ class TextGenerator(callbacks.Callback):
         self.generate("wine review", max_tokens=80, temperature=1.0)
 
 
-# Create a model save checkpoint
-model_checkpoint_callback = callbacks.ModelCheckpoint(
-    filepath=f"{checkpoint_dir}/checkpoint.weights.h5",
-    save_weights_only=True,
-    save_freq="epoch",
-    verbose=0,
-)
-
-tensorboard_callback = callbacks.TensorBoard(log_dir=log_dir)
-
 # Tokenize starting prompt
 text_generator = TextGenerator(vocab)
 
+if LOAD_MODEL:
+    # model.load_weights('./models/model')
+    gpt = models.load_model(f"{model_dir}/gpt.keras", compile=True)
+    text_generator.model = gpt
+else:
+    # Create a model save checkpoint
+    model_checkpoint_callback = callbacks.ModelCheckpoint(
+        filepath=f"{checkpoint_dir}/checkpoint.weights.h5",
+        save_weights_only=True,
+        save_freq="epoch",
+        verbose=0,
+    )
 
-gpt.fit(
-    train_ds,
-    epochs=EPOCHS,
-    callbacks=[model_checkpoint_callback, tensorboard_callback, text_generator],
-)
+    tensorboard_callback = callbacks.TensorBoard(log_dir=log_dir)
+
+    gpt.fit(
+        train_ds,
+        epochs=EPOCHS,
+        callbacks=[model_checkpoint_callback, tensorboard_callback, text_generator],
+    )
 
 
-# Save the final model
-gpt.save(f"{model_dir}/gpt.keras")
+    # Save the final model
+    gpt.save(f"{model_dir}/gpt.keras")
 
 
 # # 3. Generate text using the Transformer
-
+colors = ['\033[0;36m', '\033[0;33m', '\033[0;31m']
 def print_probs(info, vocab, top_k=5):
     for i in info:
         highlighted_text = []
         for word, att_score in zip(
             i["prompt"].split(), np.mean(i["atts"], axis=0)
         ):
+            color_id = int(att_score * 2 // max(np.mean(i["atts"], axis=0)))
             highlighted_text.append(
-                '<span style="background-color:rgba(135,206,250,'
-                + str(att_score / max(np.mean(i["atts"], axis=0)))
-                + ');">'
+                str(colors[color_id])
                 + word
-                + "</span>"
+                + "\033[0m"
             )
-        highlighted_text = " ".join(highlighted_text)
-        display(HTML(highlighted_text))
+        highlighted_text = "\n\t".join(highlighted_text)
+        print("\t" + highlighted_text)
 
         word_probs = i["word_probs"]
         p_sorted = np.sort(word_probs)[::-1][:top_k]
