@@ -29,9 +29,10 @@ N_HEADS = 2
 FEED_FORWARD_DIM = 256
 VALIDATION_SPLIT = 0.2
 SEED = 42
-LOAD_MODEL = False
+LOAD_MODEL = True
 BATCH_SIZE = 32
 EPOCHS = 5
+TF_BLOCKS = 1
 
 # data_dir = "/home/guangyu/workspace/dataset/wine-reviews"
 data_dir = "/gemini/data-2/wine-review"
@@ -45,7 +46,7 @@ for directory in [checkpoint_dir, output_dir, log_dir, model_dir]:
     os.makedirs(directory, exist_ok=True)
 
 
-model_file = f"{model_dir}/gpt_pos_encoding.keras"
+model_file = f"{model_dir}/gpt.keras"
 # ## 1. Load the data <a name="load"></a>
 
 # Load the full dataset
@@ -286,9 +287,10 @@ x = TokenAndPositionEmbedding(MAX_LEN, VOCAB_SIZE, EMBEDDING_DIM)(inputs)
 x, attention_scores = TransformerBlock(
     N_HEADS, KEY_DIM, EMBEDDING_DIM, FEED_FORWARD_DIM
 )(x)
-x, _ = TransformerBlock(
-    N_HEADS, KEY_DIM, EMBEDDING_DIM, FEED_FORWARD_DIM
-)(x)
+for i in range(TF_BLOCKS - 1):
+    x, _ = TransformerBlock(
+        N_HEADS, KEY_DIM, EMBEDDING_DIM, FEED_FORWARD_DIM
+    )(x)
 outputs = layers.Dense(VOCAB_SIZE, activation="softmax")(x)
 gpt = models.Model(inputs=inputs, outputs=[outputs, attention_scores])
 gpt.compile("adam", loss=[losses.SparseCategoricalCrossentropy(), None])
@@ -381,7 +383,7 @@ def print_probs(info, vocab, top_k=5):
                 + word
                 + "\033[0m"
             )
-        highlighted_text = "\n\t".join(highlighted_text)
+        highlighted_text = " ".join(highlighted_text)
         print("\t" + highlighted_text)
 
         word_probs = i["word_probs"]
