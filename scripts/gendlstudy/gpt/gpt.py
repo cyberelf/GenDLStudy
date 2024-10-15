@@ -29,7 +29,7 @@ N_HEADS = 2
 FEED_FORWARD_DIM = 256
 VALIDATION_SPLIT = 0.2
 SEED = 42
-LOAD_MODEL = True
+LOAD_MODEL = False
 BATCH_SIZE = 32
 EPOCHS = 5
 
@@ -44,6 +44,8 @@ model_dir = f"{base_dir}/models"
 for directory in [checkpoint_dir, output_dir, log_dir, model_dir]:
     os.makedirs(directory, exist_ok=True)
 
+
+model_file = f"{model_dir}/gpt_pos_encoding.keras"
 # ## 1. Load the data <a name="load"></a>
 
 # Load the full dataset
@@ -240,12 +242,28 @@ class TokenAndPositionEmbedding(layers.Layer):
         self.token_emb = layers.Embedding(
             input_dim=vocab_size, output_dim=embed_dim
         )
-        self.pos_emb = layers.Embedding(input_dim=max_len, output_dim=embed_dim)
+        # relpace the position embedding with the positional encoding
+        # self.pos_emb = layers.Embedding(input_dim=max_len, output_dim=embed_dim)
+        # positional encoding
+        self.positions = self.positional_encoding()
+
+    def positional_encoding(self):
+        positions = np.arange(self.max_len)[:, np.newaxis]
+        i = np.arange(self.embed_dim)[np.newaxis, :]
+        angle_rads = positions / 10000 ** ((2 * (i // 2)) / np.float32(self.embed_dim))
+        angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
+        angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
+        pos_encoding = angle_rads[np.newaxis, ...]
+        return tf.convert_to_tensor(pos_encoding, dtype=tf.float32)
 
     def call(self, x):
-        maxlen = tf.shape(x)[-1]
-        positions = tf.range(start=0, limit=maxlen, delta=1)
-        positions = self.pos_emb(positions)
+        # maxlen = tf.shape(x)[-1]
+        # positions = tf.range(start=0, limit=maxlen, delta=1, dtype=tf.float32)
+        # positions = self.pos_emb(positions)
+        batch_size = tf.shape(x)[0]
+        seqlen = tf.shape(x)[1]
+        positions = self.positions[:, :seqlen, :]
+        positions = tf.tile(positions, [batch_size, 1, 1])
         x = self.token_emb(x)
         return x + positions
 
@@ -266,6 +284,9 @@ class TokenAndPositionEmbedding(layers.Layer):
 inputs = layers.Input(shape=(None,), dtype=tf.int32)
 x = TokenAndPositionEmbedding(MAX_LEN, VOCAB_SIZE, EMBEDDING_DIM)(inputs)
 x, attention_scores = TransformerBlock(
+    N_HEADS, KEY_DIM, EMBEDDING_DIM, FEED_FORWARD_DIM
+)(x)
+x, _ = TransformerBlock(
     N_HEADS, KEY_DIM, EMBEDDING_DIM, FEED_FORWARD_DIM
 )(x)
 outputs = layers.Dense(VOCAB_SIZE, activation="softmax")(x)
@@ -322,7 +343,7 @@ text_generator = TextGenerator(vocab)
 
 if LOAD_MODEL:
     # model.load_weights('./models/model')
-    gpt = models.load_model(f"{model_dir}/gpt.keras", compile=True)
+    gpt = models.load_model(model_file, compile=True)
     text_generator.model = gpt
 else:
     # Create a model save checkpoint
@@ -343,7 +364,7 @@ else:
 
 
     # Save the final model
-    gpt.save(f"{model_dir}/gpt.keras")
+    gpt.save(model_file)
 
 
 # # 3. Generate text using the Transformer
