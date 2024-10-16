@@ -29,6 +29,14 @@ from tensorflow.keras import (
     callbacks,
 )
 
+# disable GPU memory preallocation for new version of tensorflow
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
 
 # data_dir = "/gemini/data-2/oxford_102_flower_dataset/dataset/train"
 # data_dir = "/gemini/data-1/img_align_celeba/img_align_celeba"

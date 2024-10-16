@@ -3,7 +3,7 @@ import numpy as np
 
 import tensorflow as tf
 from tensorflow.keras import layers, models, losses, callbacks
-from tensorflow import keras
+from keras.saving import register_keras_serializable
 
 
 def causal_attention_mask(batch_size, n_dest, n_src, dtype):
@@ -21,7 +21,7 @@ def causal_attention_mask(batch_size, n_dest, n_src, dtype):
     return tf.tile(mask, mult)
 
 # ## 6. Create a Transformer Block layer <a name="transformer"></a>
-@keras.saving.register_keras_serializable()
+@register_keras_serializable()
 class TransformerBlock(layers.Layer):
     def __init__(self, num_heads, key_dim, embed_dim, ff_dim, dropout_rate=0.1, **kwargs):
         super(TransformerBlock, self).__init__()
@@ -75,7 +75,7 @@ class TransformerBlock(layers.Layer):
 
 
 # ## 7. Create the Token and Position Embedding <a name="embedder"></a>
-@keras.saving.register_keras_serializable()
+@register_keras_serializable()
 class TokenAndPositionEmbedding(layers.Layer):
     def __init__(self, max_len, vocab_size, embed_dim, **kwargs):
         super(TokenAndPositionEmbedding, self).__init__()
