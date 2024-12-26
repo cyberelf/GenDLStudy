@@ -29,9 +29,9 @@ N_HEADS = 2
 FEED_FORWARD_DIM = 256
 VALIDATION_SPLIT = 0.2
 SEED = 42
-LOAD_MODEL = True
+LOAD_MODEL = False
 BATCH_SIZE = 32
-EPOCHS = 5
+EPOCHS = 20
 TF_BLOCKS = 4
 
 # data_dir = "/home/guangyu/workspace/dataset/wine-reviews"
