@@ -162,7 +162,7 @@ print(example_input_output)
 def causal_attention_mask(batch_size, n_dest, n_src, dtype):
     i = tf.range(n_dest)[:, None]
     j = tf.range(n_src)
-    m = i >= j - n_src + n_dest
+    m = i >= j - n_src + n_dest # buttom right triangle of the matrix
     mask = tf.cast(m, dtype)
     mask = tf.reshape(mask, [1, n_dest, n_src])
     mult = tf.concat(
