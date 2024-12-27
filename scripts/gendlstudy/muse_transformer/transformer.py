@@ -37,7 +37,8 @@ KEY_DIM = 256
 N_HEADS = 5
 DROPOUT_RATE = 0.3
 FEED_FORWARD_DIM = 256
-LOAD_MODEL = False
+LOAD_MODEL = False   # turn off this for fresh training
+TRAIN_MODEL = True   # turn on this for training
 
 # optimization
 EPOCHS = 5000
@@ -318,10 +319,10 @@ model = models.Model(
 )
 model.compile(
     "adam",
-    loss=[
-        losses.SparseCategoricalCrossentropy(),
-        losses.SparseCategoricalCrossentropy(),
-    ],
+    loss={
+        "note_outputs": losses.SparseCategoricalCrossentropy(),
+        "duration_outputs": losses.SparseCategoricalCrossentropy(),
+    },
 )
 att_model = models.Model(
     inputs=[note_inputs, durations_inputs], outputs=attention_scores
@@ -332,9 +333,10 @@ model.summary()
 
 
 if LOAD_MODEL:
-    model.load_weights("./checkpoint/checkpoint.ckpt")
-    # model = models.load_model('./models/model', compile=True)
-
+    if TRAIN_MODEL:
+        model.load_weights("./checkpoint/checkpoint.ckpt")
+    else:
+        model = load_model_from_file("./models/model")
 
 # ## 9. Train the Transformer <a name="train"></a>
 
@@ -486,23 +488,25 @@ tensorboard_callback = callbacks.TensorBoard(log_dir="./logs")
 music_generator = MusicGenerator(notes_vocab, durations_vocab)
 
 
-model.fit(
-    ds,
-    epochs=EPOCHS,
-    callbacks=[
-        model_checkpoint_callback,
-        tensorboard_callback,
-        # music_generator,
-    ],
-)
+if TRAIN_MODEL:
+    model.fit(
+        ds,
+        epochs=EPOCHS,
+        callbacks=[
+            model_checkpoint_callback,
+            tensorboard_callback,
+            # music_generator,
+        ],
+    )
 
-
-# Save the final model
-model.save("./models/model")
+    # Save the final model
+    model.save("./models/model")
 
 
 # # 3. Generate music using the Transformer
-
+if not hasattr(music_generator, "model"):
+    music_generator.model = model
+    
 info = music_generator.generate(
     ["START"], ["0.0"], max_tokens=50, temperature=0.5
 )
@@ -548,7 +552,10 @@ plt.imshow(
     extent=[0, seq_len, 35, 70],
 )
 plt.show()
-
+plt.savefig(
+    os.path.join(output_dir, "note-" + timestr + ".png"),
+    bbox_inches="tight",
+)
 
 # ## Attention Plot
 
@@ -585,7 +592,10 @@ plt.setp(
     va="center",
     rotation_mode="anchor",
 )
-plt.show()
+plt.savefig(
+    os.path.join(output_dir, "attention-" + timestr + ".png"),
+    bbox_inches="tight",
+)
 
 
 
